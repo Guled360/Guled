@@ -1,5 +1,5 @@
-
 import pygame
+import random
 
 # import libraries
 
@@ -17,20 +17,20 @@ SCREEN_HEIGHT = 600
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Jump Man")
 
-
 # set frame rate
 clock = pygame.time.Clock()
 FPS = 60
 
 # game variables
 GRAVITY = 1
-
+MAX_PLATFORMS = 10
 # define colors
 WHITE = (255, 255, 255)
 
 # load images
 jumpy_image = pygame.image.load("assets/jump.png.").convert_alpha()
 background_image = pygame.image.load("assets/background.png").convert_alpha()
+platform_image = pygame.image.load("assets/wood.png").convert_alpha()
 
 
 # player class
@@ -61,15 +61,24 @@ class Player():
         self.vel_y += GRAVITY
         dy += self.vel_y
 
-
         # ENSURE PLAYER DOESN'T GO OFF THE EDGE
         if self.rect.left + dx < 0:
             dx = 0 - self.rect.left
         if self.rect.right + dx > SCREEN_WIDTH:
-            dx = SCREEN_WIDTH -self.rect.right
+            dx = SCREEN_WIDTH - self.rect.right
 
+       # check collison with platforms
+        for platform in platform_group:
+            # collision in the y direction
+            if platform.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+       # check if above platform
+                if self.rect.bottom <platform.rect.centery:
+                    if self.vel_y > 0:
+                     self.rect.bottom = platform.rect.top
+                dy = 0
+                self.vel_y = -20
 
-        # CHECK COLLIONS
+       # check collision with ground
         if self.rect.bottom + dy > SCREEN_HEIGHT:
             dy = 0
             self.vel_y = -20
@@ -81,9 +90,29 @@ class Player():
     def draw(self):
         screen.blit(pygame.transform.flip(self.image, self.flip, False), (self.rect.x - 12, self.rect.y - 5))
         pygame.draw.rect(screen, WHITE, self.rect, 2)
+# platform class
+class Platform(pygame.sprite.Sprite):
+        def __init__(self, x, y, width):
+            pygame.sprite.Sprite.__init__(self)
+            self.image = pygame.transform.scale(platform_image, (width, 10))
+            self.rect = self.image.get_rect()
+            self.rect.x = x
+            self.rect.y = y
 
 
+# PLAYER INSTANCE
 jumpy = Player(SCREEN_WIDTH // 2, SCREEN_HEIGHT - 150)
+
+# CREATE SPRITE GROUPS
+platform_group = pygame.sprite.Group()
+
+# create temporary platforms
+for p in range(MAX_PLATFORMS):
+    p_w = random.randint(40, 60)
+    p_x = random.randint(0, SCREEN_WIDTH - p_w)
+    p_y = p * random.randint(80, 120)
+    platform = Platform(p_x, p_y, p_w)
+    platform_group.add(platform)
 
 # game loop
 run = True
@@ -97,6 +126,7 @@ while run:
     screen.blit(background_image, (0, 0))
 
     # draw sprites
+    platform_group.draw(screen)
     jumpy.draw()
 
     # event handler
